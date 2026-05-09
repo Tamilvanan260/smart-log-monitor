@@ -1,0 +1,20 @@
+2026-05-09 00:00:00 INFO    System monitoring started
+2026-05-09 00:05:00 INFO    CPU usage: 12% — Memory: 4.2GB / 16GB
+2026-05-09 00:10:00 INFO    Disk usage: 45% on /dev/sda1
+2026-05-09 01:00:00 INFO    Scheduled cron job started: backup.sh
+2026-05-09 01:15:00 INFO    Backup completed: 8.7GB written to /backup
+2026-05-09 02:00:00 DEBUG   Network throughput: 120 Mbps in / 45 Mbps out
+2026-05-09 03:00:00 WARNING CPU usage spike: 78% for 5 minutes
+2026-05-09 04:00:00 WARNING Swap usage high: 2.1GB / 4GB
+2026-05-09 05:00:00 ERROR   Disk I/O error on /dev/sdb: read timeout
+2026-05-09 06:00:00 ERROR   Network interface eth1 dropped 120 packets
+2026-05-09 07:00:00 WARNING Disk space at 85% on /dev/sda1
+2026-05-09 08:00:00 ERROR   No space left on device — writes failing
+2026-05-09 08:30:00 CRITICAL Disk space below 5% on /dev/sda1
+2026-05-09 09:00:00 CRITICAL Kernel panic — system halting
+2026-05-09 09:00:01 ERROR   Process manager failed to restart services
+2026-05-09 09:05:00 INFO    System rebooted after kernel panic
+2026-05-09 09:06:00 INFO    All services restored after reboot
+2026-05-09 09:10:00 WARNING Memory usage at 90% post-restart
+2026-05-09 09:15:00 INFO    Emergency disk cleanup freed 12GB
+2026-05-09 09:20:00 INFO    System stable — monitoring resumed

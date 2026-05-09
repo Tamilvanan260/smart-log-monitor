@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}User Management – Smart Log Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold mb-0">
+      <i class="bi bi-people text-info me-2"></i>User Management
+    </h4>
+    <p class="text-secondary small mb-0 mt-1">Manage accounts and access roles</p>
+  </div>
+  <a href="{{ url_for('auth.user_create') }}" class="btn btn-info btn-sm text-white px-3">
+    <i class="bi bi-person-plus me-1"></i>Add User
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    {% if users %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th class="ps-4">Username</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Last Login</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td class="ps-4">
+              <div class="d-flex align-items-center gap-2">
+                <div class="user-avatar
+                    {% if user.role == 'admin' %}user-avatar-admin{% endif %}">
+                  {{ user.username[0].upper() }}
+                </div>
+                <div>
+                  <span class="fw-semibold text-white">{{ user.username }}</span>
+                  {% if user.id == current_user.id %}
+                  <span class="badge bg-info text-dark ms-1 small">You</span>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge
+                {% if user.role == 'admin' %}bg-warning text-dark
+                {% else %}bg-secondary{% endif %}">
+                <i class="bi bi-{% if user.role == 'admin' %}shield-fill{% else %}eye{% endif %} me-1"></i>
+                {{ user.role | capitalize }}
+              </span>
+            </td>
+            <td>
+              {% if user.is_active %}
+                <span class="badge bg-success bg-opacity-25 text-success">Active</span>
+              {% else %}
+                <span class="badge bg-danger bg-opacity-25 text-danger">Disabled</span>
+              {% endif %}
+            </td>
+            <td class="text-secondary small">
+              {{ user.created_at.strftime('%Y-%m-%d') }}
+            </td>
+            <td class="text-secondary small">
+              {% if user.last_login_at %}
+                {{ user.last_login_at.strftime('%Y-%m-%d %H:%M') }}
+              {% else %}
+                <span class="text-muted">Never</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <a href="{{ url_for('auth.user_edit', user_id=user.id) }}"
+                 class="btn btn-outline-info btn-sm me-1">
+                <i class="bi bi-pencil me-1"></i>Edit
+              </a>
+              {% if user.id != current_user.id %}
+              <form action="{{ url_for('auth.user_delete', user_id=user.id) }}"
+                    method="POST" class="d-inline"
+                    onsubmit="return confirm('Delete user {{ user.username }}?')">
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-people display-3 text-secondary opacity-25 d-block mb-3"></i>
+      <p class="text-secondary">No users found.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

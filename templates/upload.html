@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Upload Log – Smart Log Monitor{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <!-- Page header -->
+    <div class="d-flex align-items-center mb-4">
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary btn-sm me-3">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div>
+        <h4 class="fw-bold mb-0">
+          <i class="bi bi-cloud-upload text-info me-2"></i>Upload Log File
+        </h4>
+        <p class="text-secondary small mb-0 mt-1">
+          Accepts <strong>.log</strong> and <strong>.txt</strong> files in the strict format:
+          <code class="text-info">YYYY-MM-DD HH:MM:SS LEVEL Message</code>
+        </p>
+      </div>
+    </div>
+
+    <!-- Upload card -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <form method="POST" enctype="multipart/form-data" id="uploadForm" novalidate>
+
+          <!-- Drop zone -->
+          <div class="drop-zone mb-4" id="dropZone" role="button" tabindex="0"
+               aria-label="Drop log file here or press Enter to browse">
+            <i class="bi bi-file-earmark-arrow-up display-3 text-info opacity-75 mb-3 d-block"></i>
+            <h6 class="fw-semibold text-white">Drag &amp; drop your log file here</h6>
+            <p class="text-secondary small mb-3">or click / press Enter to browse</p>
+            <input type="file" name="log_file" id="fileInput"
+                   class="d-none" accept=".log,.txt" required />
+            <button type="button" class="btn btn-outline-info btn-sm"
+                    onclick="document.getElementById('fileInput').click()">
+              <i class="bi bi-folder2-open me-1"></i>Browse Files
+            </button>
+          </div>
+
+          <!-- Selected file info (hidden until a file is chosen) -->
+          <div id="fileInfo" class="alert alert-info d-none mb-4" role="status">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-file-earmark-check fs-4 flex-shrink-0"></i>
+              <div>
+                <div class="fw-semibold" id="fileName"></div>
+                <div class="small text-secondary" id="fileSize"></div>
+              </div>
+              <button type="button" class="btn-close ms-auto"
+                      id="clearFile" aria-label="Remove selected file"></button>
+            </div>
+          </div>
+
+          <!-- Format reference -->
+          <div class="card bg-dark border-0 mb-4">
+            <div class="card-body py-3">
+              <p class="small text-secondary mb-2 fw-semibold">
+                <i class="bi bi-info-circle me-1 text-info"></i>Expected line format
+              </p>
+              <pre class="mb-0 small text-info" style="white-space:pre-wrap;">2026-04-13 10:01:12 INFO  Server started
+2026-04-13 10:03:10 WARNING High memory usage
+2026-04-13 10:04:22 ERROR Database connection failed
+2026-04-13 10:05:00 CRITICAL Disk space critical</pre>
+            </div>
+          </div>
+
+          <!-- Constraints notice -->
+          <div class="alert alert-secondary d-flex align-items-start gap-2 small mb-4">
+            <i class="bi bi-shield-check text-info fs-5 flex-shrink-0 mt-1"></i>
+            <ul class="mb-0 ps-3">
+              <li>Accepted types: <strong>.log</strong>, <strong>.txt</strong></li>
+              <li>Maximum file size: <strong>16 MB</strong></li>
+              <li>Lines not matching the format are skipped but reported</li>
+              <li>Files are stored securely with a unique name on the server</li>
+            </ul>
+          </div>
+
+          <!-- Submit button -->
+          <button type="submit" class="btn btn-info text-white w-100 py-2 fw-semibold"
+                  id="submitBtn" disabled>
+            <i class="bi bi-cpu me-2"></i>Upload &amp; Analyse
+          </button>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- Processing indicator (shown on submit) -->
+    <div id="progressCard" class="card border-0 shadow-sm mt-3 d-none" role="status" aria-live="polite">
+      <div class="card-body text-center py-4">
+        <div class="spinner-border text-info mb-3" aria-hidden="true"></div>
+        <p class="text-white fw-semibold mb-1">Parsing your log file…</p>
+        <p class="text-secondary small mb-0">Extracting timestamps, levels, and messages.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+"use strict";
+
+const fileInput  = document.getElementById("fileInput");
+const dropZone   = document.getElementById("dropZone");
+const fileInfo   = document.getElementById("fileInfo");
+const fileNameEl = document.getElementById("fileName");
+const fileSizeEl = document.getElementById("fileSize");
+const clearBtn   = document.getElementById("clearFile");
+const submitBtn  = document.getElementById("submitBtn");
+const uploadForm = document.getElementById("uploadForm");
+const progressCard = document.getElementById("progressCard");
+
+// Allowed extensions (must match server-side ALLOWED_EXTENSIONS)
+const ALLOWED_EXT = new Set(["log", "txt"]);
+const MAX_BYTES   = 16 * 1024 * 1024; // 16 MB
+
+function formatBytes(n) {
+  if (n < 1024)        return n + " B";
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+  return (n / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function getExt(name) {
+  const parts = name.split(".");
+  return parts.length > 1 ? parts.pop().toLowerCase() : "";
+}
+
+function showFile(file) {
+  const ext = getExt(file.name);
+
+  if (!ALLOWED_EXT.has(ext)) {
+    alert(`Invalid file type ".${ext}". Please upload a .log or .txt file.`);
+    fileInput.value = "";
+    return;
+  }
+
+  if (file.size > MAX_BYTES) {
+    alert(`File is too large (${formatBytes(file.size)}). Maximum size is 16 MB.`);
+    fileInput.value = "";
+    return;
+  }
+
+  fileNameEl.textContent = file.name;
+  fileSizeEl.textContent = formatBytes(file.size);
+  fileInfo.classList.remove("d-none");
+  submitBtn.disabled = false;
+  dropZone.classList.add("drop-zone--active");
+}
+
+function clearFile() {
+  fileInput.value = "";
+  fileInfo.classList.add("d-none");
+  submitBtn.disabled = true;
+  dropZone.classList.remove("drop-zone--active");
+  fileNameEl.textContent = "";
+  fileSizeEl.textContent = "";
+}
+
+// File input change
+fileInput.addEventListener("change", () => {
+  if (fileInput.files.length > 0) showFile(fileInput.files[0]);
+});
+
+// Clear button
+clearBtn.addEventListener("click", clearFile);
+
+// Keyboard: Enter on drop zone opens file dialog
+dropZone.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    fileInput.click();
+  }
+});
+
+// Drag & drop
+dropZone.addEventListener("dragover",  (e) => { e.preventDefault(); dropZone.classList.add("drop-zone--hover"); });
+dropZone.addEventListener("dragleave", ()  => dropZone.classList.remove("drop-zone--hover"));
+dropZone.addEventListener("dragenter", (e) => e.preventDefault());
+dropZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropZone.classList.remove("drop-zone--hover");
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  fileInput.files = dt.files;
+  showFile(file);
+});
+
+// Show progress spinner on submit
+uploadForm.addEventListener("submit", (e) => {
+  if (!fileInput.files.length) { e.preventDefault(); return; }
+  submitBtn.disabled = true;
+  progressCard.classList.remove("d-none");
+});
+</script>
+{% endblock %}

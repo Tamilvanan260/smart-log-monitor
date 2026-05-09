@@ -1,0 +1,18 @@
+2026-05-09 08:00:01 INFO    Web server started on port 8080
+2026-05-09 08:00:05 INFO    Configuration loaded successfully
+2026-05-09 08:01:12 INFO    New connection from 192.168.1.10
+2026-05-09 08:02:33 INFO    GET /api/users responded 200 in 45ms
+2026-05-09 08:03:11 WARNING Response time exceeded 500ms: 612ms
+2026-05-09 08:04:22 WARNING Memory usage at 75%
+2026-05-09 08:05:01 ERROR   Failed to process request: connection reset by peer
+2026-05-09 08:06:15 ERROR   Request timed out after 30s
+2026-05-09 08:07:44 ERROR   Database connection failed after 3 retries
+2026-05-09 08:08:02 ERROR   Authentication failed: invalid token
+2026-05-09 08:09:33 CRITICAL Out of memory — process killed
+2026-05-09 08:10:00 CRITICAL Server overloaded — dropping requests
+2026-05-09 08:10:45 INFO    Auto-restart triggered
+2026-05-09 08:11:00 INFO    Server recovered successfully
+2026-05-09 08:12:10 WARNING High CPU usage: 92%
+2026-05-09 08:13:05 ERROR   SSL handshake failure with client 10.0.0.5
+2026-05-09 08:14:22 INFO    Scheduled maintenance started
+2026-05-09 08:15:00 INFO    Backup completed successfully

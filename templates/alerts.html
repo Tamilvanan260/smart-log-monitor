@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+{% block title %}Alerts – Smart Log Monitor{% endblock %}
+
+{% block content %}
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════════════════════════════ -->
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+  <div>
+    <h4 class="fw-bold mb-0">
+      <i class="bi bi-bell text-danger me-2"></i>Alerts
+    </h4>
+    <p class="text-secondary small mb-0 mt-1">
+      Pattern-matched alerts from all parsed log files
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <!-- Export dropdown -->
+    <div class="dropdown">
+      <button class="btn btn-outline-secondary btn-sm dropdown-toggle"
+              type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-download me-1"></i>Export
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow">
+        <li><h6 class="dropdown-header text-secondary small">
+          Filtered Alerts
+        </h6></li>
+        <li>
+          <a class="dropdown-item small" target="_blank"
+             href="{{ url_for('main.export_alerts',
+                              severity=severity_filter, status=status_filter,
+                              category=category_filter, q=search_query, fmt='csv') }}">
+            <i class="bi bi-filetype-csv me-2 text-success"></i>Download as CSV
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item small" target="_blank"
+             href="{{ url_for('main.export_alerts',
+                              severity=severity_filter, status=status_filter,
+                              category=category_filter, q=search_query, fmt='excel') }}">
+            <i class="bi bi-file-earmark-excel me-2 text-success"></i>Download as Excel
+          </a>
+        </li>
+        <li><hr class="dropdown-divider border-secondary"></li>
+        <li>
+          <a class="dropdown-item small" target="_blank"
+             href="{{ url_for('main.export_summary', fmt='csv') }}">
+            <i class="bi bi-file-earmark-bar-graph me-2 text-info"></i>Full Summary Report
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    {% if alert_summary.open_count > 0 %}
+    <form action="{{ url_for('main.alerts_resolve_all') }}" method="POST"
+          onsubmit="return confirm('Mark all {{ alert_summary.open_count }} open alert(s) as resolved?')">
+      <button type="submit" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-check2-all me-1"></i>Resolve All Open
+      </button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('main.alerts') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Filters
+    </a>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SUMMARY STAT CARDS
+══════════════════════════════════════════════════════════════ -->
+<div class="row g-3 mb-4">
+
+  <div class="col-6 col-sm-3 col-lg">
+    <a href="{{ url_for('main.alerts') }}" class="text-decoration-none">
+      <div class="card stat-card border-0 shadow-sm h-100 text-center py-3
+                  {% if not severity_filter %}border-info border-opacity-50{% endif %}">
+        <div class="stat-number text-white">{{ alert_summary.total }}</div>
+        <div class="stat-label">Total</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-6 col-sm-3 col-lg">
+    <a href="{{ url_for('main.alerts', severity='critical') }}" class="text-decoration-none">
+      <div class="card stat-card border-0 shadow-sm h-100 text-center py-3
+                  {% if severity_filter == 'critical' %}border-danger border-opacity-75{% endif %}
+                  {% if alert_summary.critical > 0 %}alert-sev-critical-card{% endif %}">
+        <div class="stat-number text-danger">{{ alert_summary.critical }}</div>
+        <div class="stat-label">Critical</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-6 col-sm-3 col-lg">
+    <a href="{{ url_for('main.alerts', severity='high') }}" class="text-decoration-none">
+      <div class="card stat-card border-0 shadow-sm h-100 text-center py-3
+                  {% if severity_filter == 'high' %}border-warning border-opacity-50{% endif %}">
+        <div class="stat-number text-warning">{{ alert_summary.high }}</div>
+        <div class="stat-label">High</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-6 col-sm-3 col-lg">
+    <a href="{{ url_for('main.alerts', severity='medium') }}" class="text-decoration-none">
+      <div class="card stat-card border-0 shadow-sm h-100 text-center py-3
+                  {% if severity_filter == 'medium' %}border-info border-opacity-50{% endif %}">
+        <div class="stat-number text-info">{{ alert_summary.medium }}</div>
+        <div class="stat-label">Medium</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-6 col-sm-3 col-lg">
+    <a href="{{ url_for('main.alerts', severity='low') }}" class="text-decoration-none">
+      <div class="card stat-card border-0 shadow-sm h-100 text-center py-3
+                  {% if severity_filter == 'low' %}border-secondary border-opacity-50{% endif %}">
+        <div class="stat-number text-secondary">{{ alert_summary.low }}</div>
+        <div class="stat-label">Low</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-6 col-sm-3 col-lg">
+    <div class="card stat-card border-0 shadow-sm h-100 text-center py-3">
+      <div class="stat-number {% if alert_summary.open_count > 0 %}text-warning{% else %}text-secondary{% endif %}">
+        {{ alert_summary.open_count }}
+      </div>
+      <div class="stat-label">Open</div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     CATEGORY BREAKDOWN
+══════════════════════════════════════════════════════════════ -->
+{% if alert_summary.by_category %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3 d-flex flex-wrap gap-2 align-items-center">
+    <span class="text-secondary small fw-semibold me-1">
+      <i class="bi bi-tag me-1 text-info"></i>By Category:
+    </span>
+    {% for cat, count in alert_summary.by_category.items() | sort %}
+    <a href="{{ url_for('main.alerts', category=cat) }}"
+       class="badge text-decoration-none alert-category-pill
+              {% if category_filter == cat %}active{% endif %}">
+      {{ cat }} <span class="ms-1 opacity-75">{{ count }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+
+<!-- ══════════════════════════════════════════════════════════
+     FILTER BAR
+══════════════════════════════════════════════════════════════ -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-3">
+    <form method="GET" action="{{ url_for('main.alerts') }}"
+          id="alertFilterForm" class="row g-2 align-items-end">
+
+      <!-- Keyword search -->
+      <div class="col-12 col-sm-6 col-lg-4">
+        <label class="form-label text-secondary small mb-1">
+          <i class="bi bi-search me-1"></i>Search Message
+        </label>
+        <div class="input-group input-group-sm">
+          <input type="search" name="q" class="form-control dash-input"
+                 placeholder="Type keyword…" value="{{ search_query }}" autocomplete="off"/>
+          {% if search_query %}
+          <a href="{{ url_for('main.alerts', severity=severity_filter, status=status_filter, category=category_filter) }}"
+             class="btn btn-outline-secondary"><i class="bi bi-x"></i></a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Severity filter -->
+      <div class="col-6 col-sm-3 col-lg-2">
+        <label class="form-label text-secondary small mb-1">
+          <i class="bi bi-shield-exclamation me-1"></i>Severity
+        </label>
+        <select name="severity" class="form-select form-select-sm dash-input"
+                onchange="this.form.submit()">
+          <option value="">All</option>
+          {% for sev in ['critical','high','medium','low'] %}
+          <option value="{{ sev }}" {% if severity_filter == sev %}selected{% endif %}>
+            {{ sev | capitalize }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Status filter -->
+      <div class="col-6 col-sm-3 col-lg-2">
+        <label class="form-label text-secondary small mb-1">
+          <i class="bi bi-circle-half me-1"></i>Status
+        </label>
+        <select name="status" class="form-select form-select-sm dash-input"
+                onchange="this.form.submit()">
+          <option value="">All</option>
+          <option value="open"         {% if status_filter=='open' %}selected{% endif %}>Open</option>
+          <option value="acknowledged" {% if status_filter=='acknowledged' %}selected{% endif %}>Acknowledged</option>
+          <option value="resolved"     {% if status_filter=='resolved' %}selected{% endif %}>Resolved</option>
+          <option value="email_sent"   {% if status_filter=='email_sent' %}selected{% endif %}>Email Sent</option>
+        </select>
+      </div>
+
+      <!-- Category filter -->
+      <div class="col-6 col-sm-3 col-lg-2">
+        <label class="form-label text-secondary small mb-1">
+          <i class="bi bi-tag me-1"></i>Category
+        </label>
+        <select name="category" class="form-select form-select-sm dash-input"
+                onchange="this.form.submit()">
+          <option value="">All</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>
+            {{ cat }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Buttons -->
+      <div class="col-6 col-sm-3 col-lg-2 d-flex gap-2">
+        <button type="submit" class="btn btn-info btn-sm text-white flex-fill">
+          <i class="bi bi-filter me-1"></i>Apply
+        </button>
+        <a href="{{ url_for('main.alerts') }}"
+           class="btn btn-outline-secondary btn-sm flex-fill">
+          <i class="bi bi-x-circle me-1"></i>Clear
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     ALERTS LIST
+══════════════════════════════════════════════════════════════ -->
+{% if alerts.items %}
+
+<div class="d-flex justify-content-between align-items-center mb-2 px-1">
+  <span class="text-secondary small">
+    Showing {{ (alerts.page-1)*alerts.per_page+1 }}–{{ [alerts.page*alerts.per_page, alerts.total]|min }}
+    of <strong class="text-white">{{ alerts.total }}</strong> alert(s)
+  </span>
+</div>
+
+<div class="d-flex flex-column gap-2">
+  {% for alert in alerts.items %}
+
+  {# ── Row severity classes ─────────────────────────────────── #}
+  {% set is_crit = alert.severity == 'critical' %}
+  {% set is_high = alert.severity == 'high' %}
+  {% set is_resolved = alert.status == 'resolved' %}
+
+  <div class="card border-0 shadow-sm alert-row
+              {% if is_crit %}alert-row-critical{% elif is_high %}alert-row-high
+              {% elif alert.severity == 'medium' %}alert-row-medium
+              {% else %}alert-row-low{% endif %}
+              {% if is_resolved %}alert-row-resolved{% endif %}">
+    <div class="card-body py-3 px-4">
+      <div class="d-flex align-items-start gap-3 flex-wrap">
+
+        <!-- Severity icon -->
+        <div class="flex-shrink-0 pt-1">
+          {% if is_crit %}
+            <i class="bi bi-fire fs-4 text-danger {% if not is_resolved %}blink{% endif %}"></i>
+          {% elif is_high %}
+            <i class="bi bi-exclamation-triangle-fill fs-4 text-warning"></i>
+          {% elif alert.severity == 'medium' %}
+            <i class="bi bi-exclamation-circle fs-4 text-info"></i>
+          {% else %}
+            <i class="bi bi-info-circle fs-4 text-secondary"></i>
+          {% endif %}
+        </div>
+
+        <!-- Main content -->
+        <div class="flex-grow-1 min-w-0">
+
+          <!-- Header row -->
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+
+            <!-- Severity badge -->
+            <span class="badge fw-semibold
+              {% if is_crit %}bg-danger
+              {% elif is_high %}bg-high
+              {% elif alert.severity=='medium' %}bg-warning text-dark
+              {% else %}bg-secondary{% endif %}">
+              {{ alert.severity | upper }}
+            </span>
+
+            <!-- Category pill -->
+            <span class="badge alert-category-pill">{{ alert.category }}</span>
+
+            <!-- Alert type -->
+            <span class="text-secondary small font-monospace">{{ alert.alert_type }}</span>
+
+            <!-- Status badge -->
+            <span class="badge ms-auto
+              {% if alert.status == 'open' %}bg-danger bg-opacity-25 text-danger
+              {% elif alert.status == 'acknowledged' %}bg-warning bg-opacity-25 text-warning
+              {% elif alert.status == 'resolved' %}bg-success bg-opacity-25 text-success
+              {% else %}bg-info bg-opacity-25 text-info{% endif %}">
+              {{ alert.status | replace('_', ' ') | title }}
+            </span>
+
+          </div>
+
+          <!-- Message -->
+          <p class="mb-2 small {% if is_crit %}text-danger{% elif is_high %}text-warning-emphasis{% else %}text-white{% endif %}
+                     {% if is_resolved %}opacity-50{% endif %}">
+            {{ alert.message }}
+          </p>
+
+          <!-- Meta row -->
+          <div class="d-flex flex-wrap gap-3 align-items-center">
+            <span class="text-secondary" style="font-size:0.75rem;">
+              <i class="bi bi-clock me-1"></i>{{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+            </span>
+            {% if alert.source_file %}
+            <span class="text-secondary" style="font-size:0.75rem;">
+              <i class="bi bi-file-earmark me-1"></i>{{ alert.source_file }}
+            </span>
+            {% endif %}
+            {% if alert.sent_at %}
+            <span class="text-info" style="font-size:0.75rem;">
+              <i class="bi bi-envelope-check me-1"></i>Email sent {{ alert.sent_at.strftime('%H:%M:%S') }}
+            </span>
+            {% endif %}
+          </div>
+
+        </div>
+
+        <!-- Action buttons -->
+        <div class="d-flex flex-column gap-1 flex-shrink-0 align-self-center">
+
+          {% if alert.log_file_id %}
+          <a href="{{ url_for('main.parsed_results', file_id=alert.log_file_id) }}"
+             class="btn btn-outline-info btn-sm" title="View source log">
+            <i class="bi bi-eye me-1"></i>Log
+          </a>
+          {% endif %}
+
+          {% if alert.status == 'open' %}
+          <form action="{{ url_for('main.alert_acknowledge', alert_id=alert.id) }}"
+                method="POST">
+            <button type="submit" class="btn btn-outline-warning btn-sm w-100" title="Acknowledge">
+              <i class="bi bi-check me-1"></i>Ack
+            </button>
+          </form>
+          {% endif %}
+
+          {% if alert.status != 'resolved' %}
+          <form action="{{ url_for('main.alert_resolve', alert_id=alert.id) }}"
+                method="POST">
+            <button type="submit" class="btn btn-outline-success btn-sm w-100" title="Resolve">
+              <i class="bi bi-check2-circle me-1"></i>Resolve
+            </button>
+          </form>
+          {% endif %}
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if alerts.pages > 1 %}
+<nav class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <span class="text-secondary small">Page {{ alerts.page }} of {{ alerts.pages }}</span>
+  <ul class="pagination pagination-sm mb-0">
+    <li class="page-item {% if not alerts.has_prev %}disabled{% endif %}">
+      <a class="page-link"
+         href="{{ url_for('main.alerts', page=1, severity=severity_filter, status=status_filter, category=category_filter, q=search_query) }}">
+        <i class="bi bi-chevron-double-left"></i>
+      </a>
+    </li>
+    <li class="page-item {% if not alerts.has_prev %}disabled{% endif %}">
+      <a class="page-link"
+         href="{{ url_for('main.alerts', page=alerts.prev_num, severity=severity_filter, status=status_filter, category=category_filter, q=search_query) }}">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+    </li>
+    {% for p in alerts.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+      {% if p %}
+      <li class="page-item {% if p == alerts.page %}active{% endif %}">
+        <a class="page-link"
+           href="{{ url_for('main.alerts', page=p, severity=severity_filter, status=status_filter, category=category_filter, q=search_query) }}">
+          {{ p }}
+        </a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+    <li class="page-item {% if not alerts.has_next %}disabled{% endif %}">
+      <a class="page-link"
+         href="{{ url_for('main.alerts', page=alerts.next_num, severity=severity_filter, status=status_filter, category=category_filter, q=search_query) }}">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </li>
+    <li class="page-item {% if not alerts.has_next %}disabled{% endif %}">
+      <a class="page-link"
+         href="{{ url_for('main.alerts', page=alerts.pages, severity=severity_filter, status=status_filter, category=category_filter, q=search_query) }}">
+        <i class="bi bi-chevron-double-right"></i>
+      </a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<!-- Empty state -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center py-5">
+    {% if severity_filter or status_filter or category_filter or search_query %}
+      <i class="bi bi-funnel display-3 text-secondary opacity-25 d-block mb-3"></i>
+      <h6 class="text-secondary">No alerts match your filters.</h6>
+      <a href="{{ url_for('main.alerts') }}" class="btn btn-outline-secondary btn-sm mt-2">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Clear all filters
+      </a>
+    {% else %}
+      <i class="bi bi-shield-check display-3 text-success opacity-50 d-block mb-3"></i>
+      <h6 class="text-secondary">No alerts — system looks healthy!</h6>
+      <p class="text-secondary small">Upload and analyse a log file to detect patterns.</p>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% block title %}{{ log_file.original_name }} – Parsed Results{% endblock %}
+
+{% block content %}
+
+<!-- ── Page header ────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+  <div class="d-flex align-items-start gap-3">
+    <a href="{{ url_for('main.logs') }}" class="btn btn-outline-secondary btn-sm mt-1">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <div>
+      <h5 class="fw-bold mb-1">
+        <i class="bi bi-file-earmark-text text-info me-2"></i>{{ log_file.original_name }}
+      </h5>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="badge
+          {% if log_file.status == 'analyzed' %}bg-success
+          {% elif log_file.status == 'error' %}bg-danger
+          {% else %}bg-warning text-dark{% endif %}">
+          {{ log_file.status }}
+        </span>
+        <span class="text-secondary small">
+          <i class="bi bi-calendar3 me-1"></i>
+          {{ log_file.uploaded_at.strftime('%Y-%m-%d %H:%M:%S') }}
+        </span>
+        <span class="text-secondary small">
+          <i class="bi bi-hdd me-1"></i>
+          {{ (log_file.file_size / 1024) | round(1) }} KB
+        </span>
+      </div>
+    </div>
+  </div>
+  <form action="{{ url_for('main.delete_log', file_id=log_file.id) }}" method="POST"
+        onsubmit="return confirm('Permanently delete this log file and all its entries?')">
+    <button type="submit" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-trash me-1"></i>Delete File
+    </button>
+  </form>
+</div>
+
+<!-- ── Summary cards ──────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+
+  {% set level_config = [
+    ('DEBUG',    'secondary', 'bug'),
+    ('INFO',     'primary',   'info-circle'),
+    ('WARNING',  'warning',   'exclamation-triangle'),
+    ('ERROR',    'danger',    'x-circle'),
+    ('CRITICAL', 'danger',    'fire'),
+  ] %}
+
+  {% for level, color, icon in level_config %}
+  <div class="col-6 col-sm-4 col-lg-2">
+    <div class="card stat-card border-0 shadow-sm h-100 text-center p-3
+                {% if level_counts[level] > 0 and level in ('ERROR', 'CRITICAL') %}border-danger border-opacity-25{% endif %}">
+      <i class="bi bi-{{ icon }} fs-3 text-{{ color }} mb-2
+                {% if level == 'CRITICAL' and level_counts[level] > 0 %}blink{% endif %}"></i>
+      <div class="stat-number text-{{ color }} fs-4">{{ level_counts[level] }}</div>
+      <div class="stat-label">{{ level }}</div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Total entries card -->
+  <div class="col-6 col-sm-4 col-lg-2">
+    <div class="card stat-card border-0 shadow-sm h-100 text-center p-3">
+      <i class="bi bi-list-ul fs-3 text-info mb-2"></i>
+      <div class="stat-number text-info fs-4">{{ entries.total }}</div>
+      <div class="stat-label">Total Entries</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Severity breakdown bar ─────────────────────────────────────────────── -->
+{% if entries.total > 0 %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3">
+    <p class="small text-secondary mb-2 fw-semibold">
+      <i class="bi bi-bar-chart me-1 text-info"></i>Severity Distribution
+    </p>
+    <div class="progress" style="height: 20px; border-radius: 6px;" title="Severity breakdown">
+      {% set total = entries.total %}
+      {% if sev_counts.get('critical', 0) > 0 %}
+        <div class="progress-bar bg-danger" role="progressbar"
+             style="width: {{ (sev_counts.get('critical', 0) / total * 100) | round(1) }}%"
+             title="Critical: {{ sev_counts.get('critical', 0) }}">
+        </div>
+      {% endif %}
+      {% if sev_counts.get('high', 0) > 0 %}
+        <div class="progress-bar" role="progressbar"
+             style="width: {{ (sev_counts.get('high', 0) / total * 100) | round(1) }}%; background:#fd7e14"
+             title="High: {{ sev_counts.get('high', 0) }}">
+        </div>
+      {% endif %}
+      {% if sev_counts.get('medium', 0) > 0 %}
+        <div class="progress-bar bg-warning" role="progressbar"
+             style="width: {{ (sev_counts.get('medium', 0) / total * 100) | round(1) }}%"
+             title="Medium: {{ sev_counts.get('medium', 0) }}">
+        </div>
+      {% endif %}
+      {% if sev_counts.get('low', 0) > 0 %}
+        <div class="progress-bar bg-secondary" role="progressbar"
+             style="width: {{ (sev_counts.get('low', 0) / total * 100) | round(1) }}%"
+             title="Low: {{ sev_counts.get('low', 0) }}">
+        </div>
+      {% endif %}
+    </div>
+    <div class="d-flex gap-3 mt-2 flex-wrap">
+      {% for sev, color in [('critical','danger'), ('high','orange'), ('medium','warning'), ('low','secondary')] %}
+        {% if sev_counts.get(sev, 0) > 0 %}
+        <span class="small">
+          <span class="badge bg-{{ color }}{% if color == 'orange' %}" style="background:#fd7e14!important{% endif %}">
+            {{ sev_counts.get(sev, 0) }}
+          </span>
+          <span class="text-secondary ms-1">{{ sev }}</span>
+        </span>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Filter bar + Search ─────────────────────────────────────────────────── -->
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+
+  <!-- Level filters -->
+  <div class="d-flex flex-wrap gap-1">
+    <a href="{{ url_for('main.parsed_results', file_id=log_file.id, q=search_query) }}"
+       class="btn btn-sm {% if not level_filter %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+      All <span class="badge bg-dark ms-1">{{ level_counts.values() | sum }}</span>
+    </a>
+    {% for level, color in [('DEBUG','secondary'), ('INFO','primary'), ('WARNING','warning'), ('ERROR','danger'), ('CRITICAL','danger')] %}
+      {% if level_counts[level] > 0 %}
+      <a href="{{ url_for('main.parsed_results', file_id=log_file.id, level=level, q=search_query) }}"
+         class="btn btn-sm
+           {% if level_filter == level %}btn-{{ color }}{% if color == 'warning' %} text-dark{% endif %}
+           {% else %}btn-outline-{{ color }}{% endif %}">
+        {{ level }}
+        <span class="badge bg-dark bg-opacity-50 ms-1">{{ level_counts[level] }}</span>
+      </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Keyword search -->
+  <form method="GET" action="{{ url_for('main.parsed_results', file_id=log_file.id) }}"
+        class="ms-auto d-flex gap-2" style="max-width:320px;">
+    {% if level_filter %}
+      <input type="hidden" name="level" value="{{ level_filter }}" />
+    {% endif %}
+    <input type="search" name="q" value="{{ search_query }}"
+           class="form-control form-control-sm bg-dark text-white border-secondary"
+           placeholder="Search messages…" />
+    <button type="submit" class="btn btn-outline-info btn-sm">
+      <i class="bi bi-search"></i>
+    </button>
+    {% if search_query %}
+    <a href="{{ url_for('main.parsed_results', file_id=log_file.id, level=level_filter) }}"
+       class="btn btn-outline-secondary btn-sm" title="Clear search">
+      <i class="bi bi-x"></i>
+    </a>
+    {% endif %}
+  </form>
+
+</div>
+
+<!-- ── Entries table ──────────────────────────────────────────────────────── -->
+{% if entries.items %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover table-sm align-middle mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th style="width:50px">#</th>
+            <th style="width:170px">
+              <i class="bi bi-clock me-1"></i>Timestamp
+            </th>
+            <th style="width:105px">Level</th>
+            <th style="width:90px">Severity</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in entries.items %}
+          <tr class="log-row-{{ entry.level | lower }}">
+
+            <!-- Row number -->
+            <td class="text-secondary small font-monospace">{{ entry.id }}</td>
+
+            <!-- Timestamp -->
+            <td class="font-monospace small text-secondary text-nowrap">
+              {{ entry.timestamp.strftime('%Y-%m-%d') }}<br/>
+              <span class="text-info">{{ entry.timestamp.strftime('%H:%M:%S') }}</span>
+            </td>
+
+            <!-- Level badge -->
+            <td>
+              <span class="badge level-badge-{{ entry.level | lower }} px-2 py-1">
+                {{ entry.level }}
+              </span>
+            </td>
+
+            <!-- Severity badge -->
+            <td>
+              <span class="badge
+                {% if entry.severity == 'critical' %}bg-danger
+                {% elif entry.severity == 'high' %}bg-high
+                {% elif entry.severity == 'medium' %}bg-warning text-dark
+                {% else %}bg-secondary{% endif %} px-2 py-1">
+                {{ entry.severity }}
+              </span>
+            </td>
+
+            <!-- Message -->
+            <td class="text-break small">{{ entry.message }}</td>
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if entries.pages > 1 %}
+<nav class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <span class="text-secondary small">
+    Showing {{ entries.per_page * (entries.page - 1) + 1 }}–{{ [entries.per_page * entries.page, entries.total] | min }}
+    of {{ entries.total }} entries
+  </span>
+  <ul class="pagination pagination-sm mb-0">
+    {% if entries.has_prev %}
+    <li class="page-item">
+      <a class="page-link"
+         href="{{ url_for('main.parsed_results', file_id=log_file.id, page=entries.prev_num, level=level_filter, q=search_query) }}">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+    </li>
+    {% endif %}
+    {% for p in entries.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+      {% if p %}
+      <li class="page-item {% if p == entries.page %}active{% endif %}">
+        <a class="page-link"
+           href="{{ url_for('main.parsed_results', file_id=log_file.id, page=p, level=level_filter, q=search_query) }}">
+          {{ p }}
+        </a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+    {% if entries.has_next %}
+    <li class="page-item">
+      <a class="page-link"
+         href="{{ url_for('main.parsed_results', file_id=log_file.id, page=entries.next_num, level=level_filter, q=search_query) }}">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<!-- Empty state -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center py-5">
+    {% if search_query or level_filter %}
+      <i class="bi bi-funnel display-4 text-secondary opacity-25 d-block mb-2"></i>
+      <p class="text-secondary">No entries match the current filter.</p>
+      <a href="{{ url_for('main.parsed_results', file_id=log_file.id) }}"
+         class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-x me-1"></i>Clear filters
+      </a>
+    {% else %}
+      <i class="bi bi-inbox display-4 text-secondary opacity-25 d-block mb-2"></i>
+      <p class="text-secondary mb-1">No parsed entries found for this file.</p>
+      <p class="text-secondary small">
+        The file may not contain lines in the
+        <code class="text-info">YYYY-MM-DD HH:MM:SS LEVEL Message</code> format.
+      </p>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

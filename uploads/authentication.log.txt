@@ -1,0 +1,20 @@
+2026-05-09 10:00:01 INFO    Auth service started
+2026-05-09 10:00:10 INFO    JWT secret loaded from environment
+2026-05-09 10:01:05 INFO    User john.doe logged in successfully
+2026-05-09 10:01:22 INFO    User jane.smith logged in successfully
+2026-05-09 10:02:00 WARNING Failed login attempt for user admin from 203.0.113.5
+2026-05-09 10:02:01 WARNING Failed login attempt for user admin from 203.0.113.5
+2026-05-09 10:02:02 WARNING Failed login attempt for user admin from 203.0.113.5
+2026-05-09 10:02:03 ERROR   Authentication failed: invalid credentials for user root
+2026-05-09 10:02:04 ERROR   Authentication failed: invalid credentials for user root
+2026-05-09 10:02:05 ERROR   Authentication failed: invalid credentials for user root
+2026-05-09 10:03:00 CRITICAL Too many failed login attempts — account locked for admin
+2026-05-09 10:03:30 ERROR   Invalid API key provided by client 198.51.100.12
+2026-05-09 10:04:00 CRITICAL Brute force attack detected from IP 203.0.113.5
+2026-05-09 10:04:15 INFO    IP 203.0.113.5 blocked by firewall
+2026-05-09 10:05:00 ERROR   Permission denied: user guest tried to access /admin
+2026-05-09 10:06:10 INFO    Password reset requested for user john.doe
+2026-05-09 10:07:22 INFO    Two-factor authentication enabled for jane.smith
+2026-05-09 10:08:00 WARNING Session token expired for user john.doe
+2026-05-09 10:09:15 INFO    User john.doe re-authenticated successfully
+2026-05-09 10:10:00 ERROR   OAuth token validation failed: token expired

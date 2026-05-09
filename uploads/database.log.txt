@@ -1,0 +1,20 @@
+2026-05-09 07:00:00 INFO    PostgreSQL 15 started
+2026-05-09 07:00:05 INFO    Listening on port 5432
+2026-05-09 07:01:00 INFO    User admin connected from 127.0.0.1
+2026-05-09 07:02:15 INFO    Query executed in 12ms: SELECT * FROM users
+2026-05-09 07:03:44 WARNING Slow query detected: 1.4s — SELECT * FROM logs
+2026-05-09 07:04:10 WARNING Connection pool at 80% capacity
+2026-05-09 07:05:33 ERROR   Deadlock detected between transactions T1 and T2
+2026-05-09 07:06:01 ERROR   Query failed: syntax error near WHERE clause
+2026-05-09 07:07:22 ERROR   Database connection failed: too many connections
+2026-05-09 07:08:45 ERROR   Table users does not exist
+2026-05-09 07:09:00 CRITICAL Connection pool exhausted — service halted
+2026-05-09 07:10:11 CRITICAL Disk space below 5% on /var/lib/postgresql
+2026-05-09 07:11:00 INFO    Emergency vacuum started
+2026-05-09 07:12:30 WARNING Replication lag detected: 45 seconds
+2026-05-09 07:13:00 ERROR   Integrity constraint violation on table orders
+2026-05-09 07:14:15 INFO    Database backup started
+2026-05-09 07:15:00 INFO    Database backup completed: 2.3GB
+2026-05-09 07:16:22 WARNING Index rebuild required on table products
+2026-05-09 07:17:00 INFO    Autovacuum completed on table sessions
+2026-05-09 07:18:45 ERROR   Failed to acquire lock on table inventory

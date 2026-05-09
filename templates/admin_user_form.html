@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} User – Smart Log Monitor{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-5">
+
+    <div class="d-flex align-items-center mb-4">
+      <a href="{{ url_for('auth.user_list') }}" class="btn btn-outline-secondary btn-sm me-3">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <h4 class="fw-bold mb-0">
+        <i class="bi bi-person-{% if action == 'Create' %}plus{% else %}gear{% endif %} text-info me-2"></i>
+        {{ action }} User
+      </h4>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <form method="POST" novalidate>
+
+          <!-- Username (create only) -->
+          {% if action == 'Create' %}
+          <div class="mb-3">
+            <label for="username" class="form-label text-secondary small fw-semibold">
+              Username <span class="text-danger">*</span>
+            </label>
+            <input type="text" id="username" name="username"
+                   class="form-control dash-input"
+                   placeholder="e.g. john_doe"
+                   autocomplete="off" required />
+          </div>
+          {% else %}
+          <div class="mb-3">
+            <label class="form-label text-secondary small fw-semibold">Username</label>
+            <div class="form-control dash-input opacity-50" style="cursor:default;">
+              {{ user.username }}
+            </div>
+            <div class="form-text text-secondary">Username cannot be changed.</div>
+          </div>
+          {% endif %}
+
+          <!-- Password -->
+          <div class="mb-3">
+            <label for="password" class="form-label text-secondary small fw-semibold">
+              Password {% if action == 'Create' %}<span class="text-danger">*</span>{% endif %}
+            </label>
+            <input type="password" id="password" name="password"
+                   class="form-control dash-input"
+                   placeholder="{% if action == 'Edit' %}Leave blank to keep current{% else %}Minimum 8 characters{% endif %}"
+                   autocomplete="new-password"
+                   {% if action == 'Create' %}required{% endif %} />
+            <div class="form-text text-secondary">Minimum 8 characters.</div>
+          </div>
+
+          <!-- Role -->
+          <div class="mb-3">
+            <label for="role" class="form-label text-secondary small fw-semibold">
+              Role <span class="text-danger">*</span>
+            </label>
+            <select id="role" name="role" class="form-select dash-input">
+              <option value="viewer"
+                {% if action == 'Edit' and user.role == 'viewer' %}selected{% endif %}>
+                Viewer — read-only access
+              </option>
+              <option value="admin"
+                {% if action == 'Edit' and user.role == 'admin' %}selected{% endif %}>
+                Admin — full access
+              </option>
+            </select>
+          </div>
+
+          <!-- Active toggle (edit only) -->
+          {% if action == 'Edit' %}
+          <div class="mb-4">
+            <label class="form-label text-secondary small fw-semibold">Account Status</label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="is_active"
+                       id="active_yes" value="1"
+                       {% if user.is_active %}checked{% endif %} />
+                <label class="form-check-label text-secondary small" for="active_yes">
+                  Active
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="is_active"
+                       id="active_no" value="0"
+                       {% if not user.is_active %}checked{% endif %} />
+                <label class="form-check-label text-secondary small" for="active_no">
+                  Disabled
+                </label>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Role description -->
+          <div class="alert alert-secondary small mb-4 d-flex gap-2 align-items-start">
+            <i class="bi bi-info-circle text-info flex-shrink-0 mt-1"></i>
+            <div>
+              <strong class="text-white">Admin</strong> — full access to dashboard, monitor,
+              upload, alerts, export, and user management.<br/>
+              <strong class="text-white">Viewer</strong> — can view logs, alerts, and parsed
+              results. Cannot export, upload, or manage users.
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-info text-white flex-fill fw-semibold">
+              <i class="bi bi-check2 me-1"></i>{{ action }} User
+            </button>
+            <a href="{{ url_for('auth.user_list') }}"
+               class="btn btn-outline-secondary px-4">Cancel</a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

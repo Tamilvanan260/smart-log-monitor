@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block title %}Live Monitor – Smart Log Monitor{% endblock %}
+
+{% block content %}
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE HEADER
+══════════════════════════════════════════════════════════════ -->
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold mb-0">
+      <i class="bi bi-broadcast text-info me-2"></i>Live Monitor
+    </h4>
+    <p class="text-secondary small mb-0 mt-1">
+      Watch log files in real time — new lines are parsed and stored automatically.
+    </p>
+  </div>
+
+  <!-- LIVE badge -->
+  <div id="liveIndicator" class="d-none align-items-center gap-2">
+    <span class="live-pulse-dot"></span>
+    <span class="fw-semibold text-success small">MONITORING ACTIVE</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     START MONITORING PANEL
+══════════════════════════════════════════════════════════════ -->
+<div class="row g-3 mb-4">
+
+  <!-- Start a monitor -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent chart-card-header">
+        <h6 class="mb-0 fw-semibold">
+          <i class="bi bi-play-circle text-success me-2"></i>Start Monitoring
+        </h6>
+      </div>
+      <div class="card-body">
+        {% if available_files %}
+        <p class="text-secondary small mb-3">
+          Select an analysed log file. The monitor will watch for new lines
+          appended to the file on disk and parse them automatically.
+        </p>
+        <div class="list-group list-group-flush">
+          {% for f in available_files %}
+          {% set is_watched = f.id in active_ids %}
+          <div class="list-group-item bg-transparent d-flex justify-content-between
+                       align-items-center gap-2 px-0">
+            <div class="min-w-0">
+              <div class="d-flex align-items-center gap-2">
+                {% if is_watched %}
+                <span class="live-pulse-dot flex-shrink-0"></span>
+                {% else %}
+                <i class="bi bi-file-earmark-text text-secondary flex-shrink-0"></i>
+                {% endif %}
+                <span class="fw-semibold small text-truncate" title="{{ f.original_name }}">
+                  {{ f.original_name }}
+                </span>
+              </div>
+              <div class="text-secondary" style="font-size:0.72rem; padding-left:1.2rem;">
+                {{ (f.file_size / 1024) | round(1) }} KB ·
+                {{ f.uploaded_at.strftime('%Y-%m-%d %H:%M') }}
+              </div>
+            </div>
+
+            {% if is_watched %}
+              <form action="{{ url_for('main.monitor_stop', file_id=f.id) }}" method="POST"
+                    class="flex-shrink-0">
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                  <i class="bi bi-stop-fill me-1"></i>Stop
+                </button>
+              </form>
+            {% else %}
+              <form action="{{ url_for('main.monitor_start', file_id=f.id) }}" method="POST"
+                    class="flex-shrink-0">
+                <button type="submit" class="btn btn-outline-success btn-sm">
+                  <i class="bi bi-play-fill me-1"></i>Start
+                </button>
+              </form>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+          <i class="bi bi-inbox fs-1 text-secondary opacity-25 d-block mb-2"></i>
+          <p class="text-secondary small mb-2">No analysed log files yet.</p>
+          <a href="{{ url_for('main.upload') }}" class="btn btn-info btn-sm text-white">
+            <i class="bi bi-cloud-upload me-1"></i>Upload a Log File
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Per-file live stats -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent chart-card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-semibold">
+          <i class="bi bi-bar-chart text-info me-2"></i>Monitor Stats
+        </h6>
+        <span class="text-secondary small" id="liveStatusText">Waiting for data…</span>
+      </div>
+      <div class="card-body">
+        <div id="monitorStatsPanel">
+          {% if watched_rows %}
+            {% for w in watched_rows %}
+            {% set is_active = w.log_file_id in active_ids %}
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 py-2
+                        border-bottom border-secondary border-opacity-25">
+              <div class="d-flex align-items-center gap-2">
+                {% if is_active %}
+                  <span class="live-pulse-dot"></span>
+                {% else %}
+                  <span class="d-inline-block rounded-circle bg-secondary"
+                        style="width:8px;height:8px;"></span>
+                {% endif %}
+                <div>
+                  <span class="fw-semibold small text-white">{{ w.source_filename }}</span>
+                  <div class="d-flex gap-2 mt-1 flex-wrap">
+                    <span class="text-secondary small">
+                      {{ w.lines_processed }} lines processed
+                    </span>
+                    {% if w.last_seen_at %}
+                    <span class="text-secondary small">·</span>
+                    <span class="text-secondary small">
+                      Last: {{ w.last_seen_at.strftime('%H:%M:%S') }}
+                    </span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% if is_active %}
+                <span class="badge bg-success">LIVE</span>
+              {% else %}
+                <span class="badge bg-secondary">STOPPED</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-secondary small text-center mb-0 py-3">
+              No files are being monitored yet.
+            </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /row -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     LIVE FEED TABLE
+══════════════════════════════════════════════════════════════ -->
+
+<!-- Hidden meta element: JS reads the initial max_id from here -->
+<div id="liveFeedMeta" data-max-id="0" class="d-none"></div>
+
+<div class="card border-0 shadow-sm">
+
+  <!-- Feed header & controls -->
+  <div class="card-header bg-transparent d-flex justify-content-between align-items-center
+              flex-wrap gap-2 py-2">
+    <span class="fw-semibold small text-secondary">
+      <i class="bi bi-activity text-info me-1"></i>Live Log Feed
+      <span class="badge bg-info text-dark ms-1" id="liveRowCount">0 new</span>
+    </span>
+    <div class="d-flex gap-2">
+      <button id="livePauseBtn" class="btn btn-outline-warning btn-sm">
+        <i class="bi bi-pause-fill me-1"></i>Pause
+      </button>
+      <button id="liveClearBtn" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-trash me-1"></i>Clear
+      </button>
+    </div>
+  </div>
+
+  <!-- Empty state (shown when no data has arrived yet) -->
+  <div id="liveFeedEmpty" class="card-body text-center py-5">
+    <div class="mb-3">
+      <span class="live-pulse-dot" style="width:16px;height:16px;display:inline-block;"></span>
+    </div>
+    <h6 class="text-secondary">Waiting for new log lines…</h6>
+    <p class="text-secondary small mb-0">
+      Start monitoring a file above, then append lines to it.<br/>
+      New entries will appear here within {{ "3" }} seconds.
+    </p>
+  </div>
+
+  <!-- Table (hidden until first data arrives) -->
+  <div id="liveFeedTableWrap" class="d-none">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 log-table">
+        <thead class="table-dark sticky-top">
+          <tr>
+            <th class="ps-3" style="width:155px">
+              <i class="bi bi-clock me-1 text-info"></i>Timestamp
+            </th>
+            <th style="width:105px">Level</th>
+            <th style="width:90px">Severity</th>
+            <th>Message</th>
+            <th style="width:150px">Source File</th>
+          </tr>
+        </thead>
+        <tbody id="liveFeedTbody">
+          <!-- Rows injected by live_feed.js -->
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer bg-transparent border-top border-secondary border-opacity-25 py-2">
+      <span class="text-secondary small">
+        <i class="bi bi-info-circle me-1"></i>
+        Showing most recent entries (newest first). Table capped at 200 rows.
+      </span>
+    </div>
+  </div>
+
+</div><!-- /live feed card -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     HOW IT WORKS — help panel
+══════════════════════════════════════════════════════════════ -->
+<div class="card border-0 shadow-sm mt-4">
+  <div class="card-header bg-transparent chart-card-header">
+    <h6 class="mb-0 fw-semibold text-secondary">
+      <i class="bi bi-question-circle me-2"></i>How real-time monitoring works
+    </h6>
+  </div>
+  <div class="card-body py-3">
+    <div class="row g-3">
+      <div class="col-md-3 text-center">
+        <div class="step-number mx-auto mb-2">1</div>
+        <p class="small text-secondary mb-0">
+          Click <strong class="text-white">Start</strong> next to any analysed log file
+        </p>
+      </div>
+      <div class="col-md-3 text-center">
+        <div class="step-number mx-auto mb-2">2</div>
+        <p class="small text-secondary mb-0">
+          A <strong class="text-white">watchdog observer</strong> thread watches the file on disk
+        </p>
+      </div>
+      <div class="col-md-3 text-center">
+        <div class="step-number mx-auto mb-2">3</div>
+        <p class="small text-secondary mb-0">
+          When new lines are appended, they are <strong class="text-white">parsed and stored</strong> in the database
+        </p>
+      </div>
+      <div class="col-md-3 text-center">
+        <div class="step-number mx-auto mb-2">4</div>
+        <p class="small text-secondary mb-0">
+          This page <strong class="text-white">polls every 3 s</strong> and shows new entries instantly
+        </p>
+      </div>
+    </div>
+    <div class="alert alert-secondary mt-3 mb-0 small d-flex gap-2 align-items-start">
+      <i class="bi bi-lightbulb text-warning flex-shrink-0 mt-1"></i>
+      <div>
+        <strong class="text-white">Test it locally:</strong>
+        open a terminal, <code class="text-info">cd uploads/</code>, then run
+        <code class="text-info">echo "2026-05-03 10:00:00 ERROR Something failed" &gt;&gt; your_file.log</code>
+        — new lines appear in the feed within 3 seconds.
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/live_feed.js') }}"></script>
+{% endblock %}

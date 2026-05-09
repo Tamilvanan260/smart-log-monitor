@@ -1,0 +1,20 @@
+2026-05-09 06:00:00 INFO    Application v2.4.1 starting up
+2026-05-09 06:00:02 INFO    Loading configuration from config.yaml
+2026-05-09 06:00:03 INFO    Connecting to Redis cache on localhost:6379
+2026-05-09 06:00:04 INFO    Connected to message queue successfully
+2026-05-09 06:00:10 INFO    All services initialized — ready to serve
+2026-05-09 06:05:00 DEBUG   Cache hit for key user:session:abc123
+2026-05-09 06:10:15 INFO    Processed 1000 requests in last 10 minutes
+2026-05-09 06:15:22 WARNING Cache miss rate above 40% — performance degraded
+2026-05-09 06:20:00 WARNING Queue backlog growing: 250 pending jobs
+2026-05-09 06:25:11 ERROR   Failed to send email: SMTP connection refused
+2026-05-09 06:30:33 ERROR   Payment gateway timeout after 30s
+2026-05-09 06:35:00 ERROR   Failed to write to cache: connection reset by peer
+2026-05-09 06:40:15 WARNING High memory usage: 88%
+2026-05-09 06:45:22 ERROR   Worker thread crashed: unhandled exception in process
+2026-05-09 06:50:00 CRITICAL Out of memory — process killed by OOM killer
+2026-05-09 06:51:00 INFO    Service restarted by process manager
+2026-05-09 06:52:10 WARNING Startup time exceeded 60 seconds
+2026-05-09 06:55:00 INFO    Health check passed — all systems operational
+2026-05-09 07:00:00 INFO    Scheduled report generation started
+2026-05-09 07:05:00 DEBUG   Report generated: 342 records processed

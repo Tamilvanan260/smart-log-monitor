@@ -1,0 +1,20 @@
+# Smart Log Monitoring & Alert System — Python dependencies
+# Install with:  pip install -r requirements.txt
+
+# ── Core framework ─────────────────────────────────────────────────────────────
+Flask==3.0.3
+Werkzeug==3.0.3
+
+# ── Database ORM ───────────────────────────────────────────────────────────────
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.30
+
+# ── Environment variable loading (.env file support) ───────────────────────────
+python-dotenv==1.0.1
+
+# ── Real-time file monitoring ──────────────────────────────────────────────────
+watchdog==6.0.0
+
+# ── Data export (CSV + Excel) ──────────────────────────────────────────────────
+pandas==2.2.3
+openpyxl==3.1.5
